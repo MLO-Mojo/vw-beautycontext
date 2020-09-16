@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The Cf-Stack for the climate-microservice ecs task&service
+
+Parameters:
+  ContainerName:
+    Type: String
+    Default: "wordpress-container"
+  WordpressEcsServiceName:
+    Type: String
+    Default: "wordpress-service"
+  #import from existing-stacks:
+  VpcStackName:
+    Type: String
+  ElbStackName:
+    Type: String
+  EcsClusterStackName:
+    Type: String
+
+Resources:
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+                - ecs.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Description: "The microservice ecsTaskExecutionRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: wordpresstask
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      Memory: 512
+      Cpu: 256
+      ContainerDefinitions:
+        - Name: !Sub ${ContainerName}
+          Image: 'wordpress'
+          Environment:
+            - Name: DATABASE_USER
+              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_USER}}'
+            - Name: DATABASE_PASSWORD
+              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_PASSWORD}}'
+            - Name: DATABASE_HOST
+              Value: '{{resolve:ssm:DATABASE_HOST:1}}'
+            - Name: DATABASE_PORT
+              Value: '{{resolve:ssm:DATABASE_PORT:1}}'
+            - Name: DATABASE_NAME
+              Value: '{{resolve:ssm:DATABASE_NAME:1}}'
+          Memory: 512
+          Cpu: 256
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 8080
+              Protocol: tcp
+          Essential: true
+
+  ServiceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: wordpressEcsServiceSG
+      GroupDescription: !Sub ECS-service SecurityGroup for the wordpress Service
+      SecurityGroupIngress:
+        - Description: "Inbound Rule for tcp on port 8080 for ipv4"
+          FromPort: 8080
+          ToPort: 8080
+          IpProtocol: tcp
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub ${ElbStackName}:Alb-SG-Id
+      Tags:
+        - Key: Name
+          Value: !Sub wordpressEcsServiceSG
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcStackName}:VpcId
+
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ecsServiceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole'
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      LaunchType: FARGATE
+      TaskDefinition: !Ref TaskDefinition
+      Cluster:
+        Fn::ImportValue: !Sub ${EcsClusterStackName}:ecsArn
+      ServiceName: wordpressEcsService
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+      DesiredCount: 2
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - !Ref ServiceSG
+          Subnets:
+            - Fn::ImportValue: !Sub ${VpcStackName}:PrivateSubnetA
+            - Fn::ImportValue: !Sub ${VpcStackName}:PrivateSubnetB
+            - Fn::ImportValue: !Sub ${VpcStackName}:PrivateSubnetC
+      LoadBalancers:
+        - ContainerName: !Sub ${ContainerName}
+          ContainerPort: 8080
+          TargetGroupArn:
+            Fn::ImportValue: !Sub ${ElbStackName}:TargetGroupARN
+Outputs:
+  ServiceNameOutput:
+    Description: The Name of the ECS-service
+    Value: !GetAtt Service.Name
+    Export:
+      Name: !Sub ${AWS::StackName}:serviceName

@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The Cf-Stack for the wordpress-db
+
+Parameters:
+  VpcStackName:
+    Type: String
+
+Resources:
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: wordpressSubnetGroup
+      DBSubnetGroupDescription: The SubnetGroup for wordpress
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${VpcStackName}:PrivateSubnetB
+        - Fn::ImportValue: !Sub ${VpcStackName}:PrivateSubnetC
+      Tags:
+        - Key: Name
+          Value: wordpressSubnetGroup
+
+  WordpressDbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: wordpressDbSG
+      GroupDescription: The SecurityGroup for the wordpressDb
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          Description: "Ingress Rule for db-connection"
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: wordpressDbSG
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcStackName}:VpcId
+
+  WordpressDbInstance:
+    Type: AWS::RDS::DBInstance
+    DependsOn:
+      - DbSubnetGroup
+      - WordpressDbSecurityGroup
+    Properties:
+      DBInstanceIdentifier: wordpressDbInstance
+      DBName: '{{resolve:ssm:DATABASE_NAME:1}}'
+      Engine: mysql
+      Port: 5432
+      DBInstanceClass: db.t2.micro
+      AllocatedStorage: 20
+      StorageType: gp2
+      AllowMajorVersionUpgrade: False
+      AutoMinorVersionUpgrade: False
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      DeleteAutomatedBackups: True
+      DeletionProtection: False
+      MasterUsername: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_USER}}'
+      MasterUserPassword: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_PASSWORD}}'
+      MultiAZ: False
+      PubliclyAccessible: False
+      StorageEncrypted: False
+      Tags:
+        - Key: Name
+          Value: WordprssDbInstance
+      VPCSecurityGroups:
+        - !Ref WordpressDbSecurityGroup
+
+  DbHostNameParameter:
+    Type: AWS::SSM::Parameter
+    DependsOn:
+      - WordpressDbInstance
+    Properties:
+      Name: DATABASE_HOST
+      Description: The Database Hostname
+      Tier: Standard
+      Type: String
+      Value: !GetAtt WordpressDbInstance.Endpoint.Address
+
+  DbPortParameter:
+    Type: AWS::SSM::Parameter
+    DependsOn:
+      - WordpressDbInstance
+    Properties:
+      Name: DATABASE_PORT
+      Description: The Database Hostname
+      Tier: Standard
+      Type: String
+      Value: !GetAtt WordpressDbInstance.Endpoint.Port
+
+Outputs:
+  InstanceName:
+    Description: The Instance Name of the wordpressDb
+    Value: !Ref WordpressDbInstance
+    Export:
+      Name: !Sub "${AWS::StackName}:InstanceName"
+  DbEndpointAddress:
+    Description: The Endpoint Address of the wordpressDb
+    Value: !GetAtt WordpressDbInstance.Endpoint.Address
+    Export:
+      Name: !Sub "${AWS::StackName}:EndpointAddress"
+  DbPort:
+    Description: The Port of the wordpressDb
+    Value: !GetAtt WordpressDbInstance.Endpoint.Port
+    Export:
+      Name: !Sub "${AWS::StackName}:Port"
+  DbSecurityGroupId:
+    Description: The Id of the SecurityGroup
+    Value: !Ref WordpressDbSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}:SecurityGroupId"

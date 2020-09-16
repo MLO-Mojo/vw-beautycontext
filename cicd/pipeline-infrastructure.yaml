@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "The cloudformation-stack for the pipeline relevant infrastructure"
+
+Parameters:
+  Project:
+    Description: Project name
+    Type: String
+
+Resources:
+  CodePipelineKmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: "KMS-Key used by codepipeline to enrypt/decrypt the source code in S3"
+      EnableKeyRotation: True
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: "CodePipelineKey"
+        Statement:
+          - Sid: AdminAccess
+            Effect: Allow
+            Action:
+              - "kms:*"
+            Principal:
+              AWS:
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Resource: "*"
+          - Sid: Allow usage from child accounts
+            Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey
+            Principal:
+              AWS:
+                - !Sub ${AWS::AccountId}
+            Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "CodePipelineKey-${Project}"
+
+  CodePipelineKmsAlias:
+    Type: AWS::KMS::Alias
+    DependsOn: CodePipelineKmsKey
+    Properties:
+      AliasName: !Sub "alias/codepipeline-artifact-key"
+      TargetKeyId: !Ref CodePipelineKmsKey
+
+  ArtifactStore:
+    Type: AWS::S3::Bucket
+    DependsOn: CodePipelineKmsAlias
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref CodePipelineKmsKey
+              SSEAlgorithm: 'aws:kms'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub "codepipeline-artifacts-${Project}"
+
+  ArtifactStorePolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactStore
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:PutObject
+              - s3:GetBucketPolicy
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:GetObjectVersion
+              - s3:GetBucketVersioning
+              - s3:ListBucketVersions
+              - s3:GetObjectVersionTagging
+            Effect: Allow
+            Resource:
+              - !Sub 'arn:aws:s3:::${ArtifactStore}'
+              - !Sub 'arn:aws:s3:::${ArtifactStore}/*'
+            Principal:
+              AWS:
+                - !Sub ${AWS::AccountId}
+
+  PipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:GenerateDataKey*
+                  - kms:DescribeKey
+                Resource:
+                  - !GetAtt CodePipelineKmsKey.Arn
+              - Effect: Allow
+                Action:
+                  - cloudformation:ListExports
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetBucketPolicy
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                  - s3:ListBucketVersions
+                  - s3:GetObjectVersionTagging
+                Resource:
+                  - !Sub arn:aws:s3:::${ArtifactStore}/*
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DeleteStack
+                  - cloudformation:UpdateStack
+                Resource: "*"
+
+Outputs:
+  PipelineServiceRoleArn:
+    Description: The arn of the serviceRole
+    Value: !Ref PipelineServiceRole
+    Export:
+      Name: !Sub ${AWS::StackName}:pipelineServiceRoleArn
+  ArtifactStore:
+    Description: The S3 Bucket name for the artifacts
+    Value: !Ref ArtifactStore
+    Export:
+      Name: !Sub ${AWS::StackName}:artifactStoreName
+  CodePipelineKmsKey:
+    Description: Pipeline KMS key id
+    Value: !Ref CodePipelineKmsKey
+    Export:
+      Name: !Sub ${AWS::StackName}:kmsKeyId
+  CodePipelineKmsKeyArn:
+    Description: Pipeline KMS key Arn
+    Value: !GetAtt CodePipelineKmsKey.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}:kmsKeyArn
+  CodePipelineKmsAlias:
+    Description: Pipeline KMS key alias name
+    Value: !Ref CodePipelineKmsAlias
+    Export:
+      Name: !Sub ${AWS::StackName}:kmyAliasName

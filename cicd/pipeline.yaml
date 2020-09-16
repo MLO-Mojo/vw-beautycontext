@@ -1,0 +1,263 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "The cloudformation-stack for the prisma-ws codepipeline"
+
+Parameters:
+  Project:
+    Description: Project name
+    Type: String
+  PipelineInfrastructureStack:
+    Description: "Application Account"
+    Type: String
+  GitHubRepoName:
+    Description: "Name of the gitHub Repository"
+    Type: String
+
+Resources:
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "wordpress-repository-${Project}"
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowPushPull
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:BatchDeleteImage"
+              - "ecr:BatchGetImage"
+              - "ecr:CompleteLayerUpload"
+              - "ecr:DeleteLifecyclePolicy"
+              - "ecr:DeleteRepository"
+              - "ecr:DeleteRepositoryPolicy"
+              - "ecr:DescribeImages"
+              - "ecr:DescribeRepositories"
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:GetLifecyclePolicy"
+              - "ecr:GetLifecyclePolicyPreview"
+              - "ecr:GetRepositoryPolicy"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:ListImages"
+              - "ecr:PutImage"
+              - "ecr:PutLifecyclePolicy"
+              - "ecr:SetRepositoryPolicy"
+
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: PipelineMaker
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codebuild:*
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - ecr:*
+                Resource: '*'
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Ref AWS::StackName
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:3.0
+        Type: LINUX_CONTAINER
+        PrivilegedMode: True
+        EnvironmentVariables:
+          - Name: ACCOUNT_ID
+            Value: !Sub ${AWS::AccountId}
+          - Name: ECR_NAME
+            Value: !Ref ECRRepository
+          - Name: REGION
+            Value: !Sub ${AWS::Region}
+      ServiceRole: !Ref CodeBuildServiceRole
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub "${Project}-pipeline"
+      ArtifactStore:
+        EncryptionKey:
+          Id:
+            Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:kmsKeyArn
+          Type: KMS
+        Location: !Ref ArtifactBucket
+          Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:artifactStoreName
+        Type: S3
+      RestartExecutionOnUpdate: False
+      RoleArn:
+        Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
+      Stages:
+        - Name: Checkout-SourceCode
+          Actions:
+            - Name: Checkout-SourceCode
+              Namespace: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              Configuration:
+                #Owner: !Ref Project
+                Repo: !Ref GitHubRepoName
+                Branch: "master"
+              OutputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+        - Name: BuildAndPush
+          Actions:
+            - Name: BuildAndPush
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildOutput
+              RunOrder: 2
+        - Name: DeployInfrastructure
+          Actions:
+            - Name: DeployVpc
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                StackName: !Sub "${Project}-vpc"
+                TemplatePath: "SourceArtifact::infrastructure/01-vpc/pipeline.yaml"
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+            - Name: DeployEcsCluster
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                StackName: !Sub "${Project}-ecs-cluster"
+                TemplatePath: "SourceArtifact::infrastructure/02-ecs-cluster/template.yaml"
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+            - Name: DeployRdsCredentials
+                ActionTypeId:
+                  Category: Deploy
+                  Owner: AWS
+                  Provider: CloudFormation
+                  Version: 1
+                Configuration:
+                  ActionMode: CREATE_UPDATE
+                  Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                  StackName: !Sub "${Project}-rds-credentials"
+                  TemplatePath: "SourceArtifact::infrastructure/03-rds/template.credentials.yaml"
+                InputArtifacts:
+                  - Name: SourceArtifact
+                RunOrder: 2
+            - Name: DeployRds
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                StackName: !Sub "${Project}-rds-db"
+                TemplatePath: "SourceArtifact::infrastructure/03-rds/template.yaml"
+                ParameterOverrides:
+                  Fn::Sub: |
+                    {
+                      "VpcStackName": "${Project}-vpc"
+                    }
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 3
+            - Name: DeployELB
+                ActionTypeId:
+                  Category: Deploy
+                  Owner: AWS
+                  Provider: CloudFormation
+                  Version: 1
+                Configuration:
+                  ActionMode: CREATE_UPDATE
+                  Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                  StackName: !Sub "${Project}-elb"
+                  TemplatePath: "SourceArtifact::infrastructure/04-elb/template.yaml"
+                  ParameterOverrides:
+                    Fn::Sub: |
+                      {
+                        "Project": "${Project}"
+                        "VpcStackName": "${Project}-vpc"
+                      }
+                InputArtifacts:
+                  - Name: SourceArtifact
+                RunOrder: 4
+            - Name: DeployTaskAndService
+                ActionTypeId:
+                  Category: Deploy
+                  Owner: AWS
+                  Provider: CloudFormation
+                  Version: 1
+                Configuration:
+                  ActionMode: CREATE_UPDATE
+                  Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                  StackName: !Sub "${Project}-task-and-service"
+                  TemplatePath: "SourceArtifact::infrastructure/05-ecs-task-service/template.yaml"
+                  ParameterOverrides:
+                    Fn::Sub: |
+                      {
+                        "VpcStackName": "${Project}-vpc",
+                        "ElbStackName": "${Project}-elb",
+                        "EcsClusterStackName": "${Project}-ecs-cluster",
+                        "EcrStackName":
+                      }
+                InputArtifacts:
+                  - Name: SourceArtifact
+                RunOrder: 5
+
+        - Name: 'DeployMicroservice'
+          Actions:
+            - Name: DeployECS
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: ECS
+              Configuration:
+                ClusterName: !Sub ecsCluster-${Project}
+                ServiceName: !Sub svc-${Repository}-${Stage}-${Suffix}
+              InputArtifacts:
+                - Name: BuildOutput
+              RunOrder: 1
+              RoleArn: !Sub "arn:aws:iam::${RemotePreviewAccount}:role/CodePipelineServiceRole-${AWS::Region}-${RemotePreviewAccount}"

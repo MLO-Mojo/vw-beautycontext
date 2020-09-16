@@ -1,0 +1,32 @@
+version: 0.2
+
+env:
+  variables:
+    ACCOUNT_ID: "get value from pipeline"
+    ECR_NAME: "get value from pipeline"
+    REGION: "get value from pipeline"
+
+phases:
+  install:
+    runtime-versions:
+      java: openjdk8
+  pre_build:
+    commands:
+      - set -e
+      - aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+      - REPOSITORY_URI=${ACCOUNT_ID}.dkr.ecr.eu-central-1.amazonaws.com/${ECR_NAME}
+  build:
+    commands:
+      - echo start build on `date`
+      - set -e
+      - docker pull wordpress
+      - |
+        docker tag wordpress:latest \
+        $REPOSITORY_URI:latest
+
+        docker push $REPOSITORY_URI:latest
+
+        printf '[{"name":"%s-container","imageUri":"%s:%s"}]' wordpress ${REPOSITORY_URI} latest > imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json
