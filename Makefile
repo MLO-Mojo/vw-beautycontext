@@ -10,7 +10,6 @@ PROJECT_NAME=vw-beatycontext
 ## Git-Repository-Credentials###
 GITHUB_REPO_NAME='vw-beautycontext'
 GITHUB_USER_NAME='MLO-Mojo'
-GITHUB_OAUTH_TOKEN='5b6213ea0be53e9491c8f7602a9912dec76a90e0'
 ################################
 
 deploy-pipeline-infrastructure:
