@@ -37,6 +37,8 @@ Resources:
 
   AuroraDb:
     Type: AWS::RDS::DBCluster
+    DependsOn:
+      - DbSubnetGroup
     Properties:
       AvailabilityZones:
         - Fn::Select:
