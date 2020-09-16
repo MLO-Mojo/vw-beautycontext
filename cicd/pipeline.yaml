@@ -71,7 +71,9 @@ Resources:
                   - "*"
               - Effect: Allow
                 Action:
-                  - ecr:*
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
                 Resource: '*'
 
   CodeBuildProject:
@@ -94,7 +96,8 @@ Resources:
             Value: !Ref ECRRepository
           - Name: REGION
             Value: !Sub ${AWS::Region}
-      ServiceRole: !Ref CodeBuildServiceRole
+      ServiceRole:
+        Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleName
 
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -125,7 +128,7 @@ Resources:
                 Owner: "MLO-Mojo"
                 Repo: "vw-beautycontext"
                 Branch: "master"
-                OAuthToken: '{{resolve:ssm:GITHUB_OAUTH_TOKEN:1}}'
+                OAuthToken: '5b6213ea0be53e9491c8f7602a9912dec76a90e0'
               OutputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -156,7 +159,9 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-vpc"
-                TemplatePath: "SourceArtifact::infrastructure/01-vpc/pipeline.yaml"
+                TemplatePath: "SourceArtifact::infrastructure/01-vpc/template.yaml"
+                RoleArn:
+                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -171,6 +176,8 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-ecs-cluster"
                 TemplatePath: "SourceArtifact::infrastructure/02-ecs-cluster/template.yaml"
+                RoleArn:
+                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -185,6 +192,8 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-rds-credentials"
                 TemplatePath: "SourceArtifact::infrastructure/03-rds/template.credentials.yaml"
+                RoleArn:
+                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 2
@@ -199,6 +208,8 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-rds-db"
                 TemplatePath: "SourceArtifact::infrastructure/03-rds/template.yaml"
+                RoleArn:
+                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
                 ParameterOverrides:
                   Fn::Sub: |
                     {
@@ -218,6 +229,8 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-elb"
                 TemplatePath: "SourceArtifact::infrastructure/04-elb/template.yaml"
+                RoleArn:
+                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
                 ParameterOverrides:
                   Fn::Sub: |
                     {
@@ -238,6 +251,8 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-task-and-service"
                 TemplatePath: "SourceArtifact::infrastructure/05-ecs-task-service/template.yaml"
+                RoleArn:
+                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
                 ParameterOverrides:
                   Fn::Sub: |
                     {

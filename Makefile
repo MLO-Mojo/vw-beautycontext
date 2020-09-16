@@ -10,12 +10,12 @@ PROJECT_NAME=vw-beatycontext
 ## Git-Repository-Credentials###
 GITHUB_REPO_NAME='vw-beautycontext'
 GITHUB_USER_NAME='MLO-Mojo'
-GITHUB_OAUTH_TOKEN='5eb76d0b913f1408de0a5ce784c6b5ed139971c7'
+GITHUB_OAUTH_TOKEN='5b6213ea0be53e9491c8f7602a9912dec76a90e0'
 ################################
 
 deploy-pipeline-infrastructure:
 	@echo "deploy pipeline-infrastructure-stack"
-	@aws cloudformation create-stack \
+	@aws cloudformation update-stack \
 		--stack-name ${PROJECT_NAME}-pipeline-infrastructure \
 		--template-body file://cicd/pipeline-infrastructure.yaml \
 		--parameters \
@@ -34,7 +34,7 @@ deploy-pipeline-infrastructure:
 
 deploy-pipeline:
 	@echo "deploy pipeline-stack"
-	@aws cloudformation create-stack \
+	@aws cloudformation update-stack \
 		--stack-name ${PROJECT_NAME}-pipeline \
 		--template-body file://cicd/pipeline.yaml \
 		--parameters \
