@@ -42,7 +42,7 @@ Resources:
       - WordpressDbSecurityGroup
     Properties:
       DBInstanceIdentifier: wordpressDbInstance
-      DBName: '{{resolve:ssm:DATABASE_NAME:1}}'
+      DBName: wordpressdb #'{{resolve:ssm:DATABASE_NAME:1}}'
       Engine: mysql
       Port: 5432
       DBInstanceClass: db.t2.micro
@@ -53,8 +53,8 @@ Resources:
       DBSubnetGroupName: !Ref DbSubnetGroup
       DeleteAutomatedBackups: True
       DeletionProtection: False
-      MasterUsername: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}'
-      MasterUserPassword: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}'
+      MasterUsername: root #'{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}'
+      MasterUserPassword: geheim41 #'{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}'
       MultiAZ: False
       PubliclyAccessible: False
       StorageEncrypted: False
