@@ -126,7 +126,7 @@ Resources:
             - Fn::ImportValue: !Sub ${VpcStackName}:PrivateSubnetC
       LoadBalancers:
         - ContainerName: !Sub ${ContainerName}
-          ContainerPort: 8080
+          ContainerPort: 80
           TargetGroupArn:
             Fn::ImportValue: !Sub ${ElbStackName}:TargetGroupARN
 Outputs:
