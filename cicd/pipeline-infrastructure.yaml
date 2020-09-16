@@ -181,6 +181,10 @@ Resources:
                 Action:
                   - iam:PassRole
                 Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecs:*
+                Resource: '*'
 
 Outputs:
   PipelineServiceRoleArn:
