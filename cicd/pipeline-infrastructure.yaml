@@ -5,8 +5,20 @@ Parameters:
   Project:
     Description: Project name
     Type: String
+  OAuthTokenGithub:
+    Description: github oauth token
+    Type: String
 
 Resources:
+  GithubOAuthToken:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: GITHUB_OAUTH_TOKEN
+      Description: The github oauth token
+      Tier: Standard
+      Type: String
+      Value: !Ref OAuthTokenGithub
+
   CodePipelineKmsKey:
     Type: AWS::KMS::Key
     Properties:
@@ -145,7 +157,7 @@ Resources:
 Outputs:
   PipelineServiceRoleArn:
     Description: The arn of the serviceRole
-    Value: !Ref PipelineServiceRole
+    Value: !GetAtt PipelineServiceRole.Arn
     Export:
       Name: !Sub ${AWS::StackName}:pipelineServiceRoleArn
   ArtifactStore:
