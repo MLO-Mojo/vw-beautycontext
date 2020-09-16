@@ -53,5 +53,3 @@ deploy-pipeline:
 		--region ${REGION}
 	@echo "successful created!"
 
-test:
-	echo ${GITHUB_OAUTH_TOKEN}
