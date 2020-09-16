@@ -26,8 +26,8 @@ Resources:
       SecurityGroupIngress:
         - IpProtocol: tcp
           Description: "Ingress Rule for db-connection"
-          FromPort: 5432
-          ToPort: 5432
+          FromPort: 3306
+          ToPort: 3306
           CidrIp: "0.0.0.0/0"
       Tags:
         - Key: Name
@@ -42,9 +42,9 @@ Resources:
       - WordpressDbSecurityGroup
     Properties:
       DBInstanceIdentifier: wordpressDbInstance
-      DBName: wordpressdb #'{{resolve:ssm:DATABASE_NAME:1}}'
+      DBName: '{{resolve:ssm:DATABASE_NAME:1}}' #wordpressdb
       Engine: mysql
-      Port: 5432
+      Port: 3306
       DBInstanceClass: db.t2.micro
       AllocatedStorage: 20
       StorageType: gp2
@@ -53,8 +53,8 @@ Resources:
       DBSubnetGroupName: !Ref DbSubnetGroup
       DeleteAutomatedBackups: True
       DeletionProtection: False
-      MasterUsername: root #'{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}'
-      MasterUserPassword: geheim41 #'{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}'
+      MasterUsername: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}' #root
+      MasterUserPassword:  '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}' #geheim41
       MultiAZ: False
       PubliclyAccessible: False
       StorageEncrypted: False

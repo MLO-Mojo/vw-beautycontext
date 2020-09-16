@@ -34,7 +34,7 @@ deploy-pipeline-infrastructure:
 
 deploy-pipeline:
 	@echo "deploy pipeline-stack"
-	@aws cloudformation create-stack \
+	@aws cloudformation update-stack \
 		--stack-name ${PROJECT_NAME}-pipeline \
 		--template-body file://cicd/pipeline.yaml \
 		--parameters \

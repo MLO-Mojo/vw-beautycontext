@@ -7,7 +7,7 @@ Parameters:
     Default: "wordpress-container"
   WordpressEcsServiceName:
     Type: String
-    Default: "wordpress-service"
+    Default: "wordpressEcsService"
   #import from existing-stacks:
   VpcStackName:
     Type: String
@@ -51,18 +51,22 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrName}:latest"
           Environment:
             - Name: WORDPRESS_DB_HOST
-              Value: '{{resolve:ssm:DATABASE_HOST:1}}'
+              Value: !Join
+                - ''
+                - - '{{resolve:ssm:DATABASE_HOST:1}}'
+                  - ':'
+                  - '{{resolve:ssm:DATABASE_PORT:1}}'
             - Name: WORDPRESS_DB_USER
-              Value: root #'{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_PASSWORD}}'
+              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_USER}}' #root
             - Name: WORDPRESS_DB_NAME
-              Value: wordpressdb #'{{resolve:ssm:DATABASE_HOST:1}}'
+              Value: '{{resolve:ssm:DATABASE_NAME:1}}' #wordpressdb
             - Name: WORDPRESS_DB_PASSWORD
-              Value: geheim41 #'{{resolve:ssm:DATABASE_PORT:1}}'
+              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_PASSWORD}}' #geheim41
           Memory: 512
           Cpu: 256
           PortMappings:
-            - ContainerPort: 8080
-              HostPort: 8080
+            - ContainerPort: 80
+              HostPort: 80
               Protocol: tcp
           Essential: true
 
@@ -72,9 +76,9 @@ Resources:
       GroupName: wordpressEcsServiceSG
       GroupDescription: !Sub ECS-service SecurityGroup for the wordpress Service
       SecurityGroupIngress:
-        - Description: "Inbound Rule for tcp on port 8080 for ipv4"
-          FromPort: 8080
-          ToPort: 8080
+        - Description: "Inbound Rule for tcp on port 80 for ipv4"
+          FromPort: 80
+          ToPort: 80
           IpProtocol: tcp
           SourceSecurityGroupId:
             Fn::ImportValue: !Sub ${ElbStackName}:Alb-SG-Id
@@ -107,7 +111,7 @@ Resources:
       TaskDefinition: !Ref TaskDefinition
       Cluster:
         Fn::ImportValue: !Sub ${EcsClusterStackName}:ecsArn
-      ServiceName: wordpressEcsService
+      ServiceName: !Ref WordpressEcsServiceName
       DeploymentConfiguration:
         MinimumHealthyPercent: 100
         MaximumPercent: 200

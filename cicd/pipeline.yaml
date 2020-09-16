@@ -282,7 +282,7 @@ Resources:
                 Provider: ECS
               Configuration:
                 ClusterName: !Sub "${Project}-ecs-cluster"
-                ServiceName: "wordpress-service"
+                ServiceName: "wordpressEcsService"
               InputArtifacts:
                 - Name: BuildOutput
               RunOrder: 3

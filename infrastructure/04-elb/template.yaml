@@ -45,18 +45,9 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub tg-elb-${Project}
-      HealthCheckEnabled: True
-      HealthCheckIntervalSeconds: 30
-      HealthCheckPath: "/health"
-      HealthCheckPort: "8080"
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 5
-      UnhealthyThresholdCount: 2
-      Matcher:
-        HttpCode: 200
+      HealthCheckEnabled: False
       Protocol: HTTP
-      Port: 8080
+      Port: 80
       Tags:
         - Key: "Name"
           Value: !Sub tg-elb-${Project}
