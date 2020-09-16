@@ -142,7 +142,7 @@ Resources:
                 Owner: "MLO-Mojo"
                 Repo: "vw-beautycontext"
                 Branch: "master"
-                OAuthToken: 'fc39ca8860cc002055f5c628356d4748bde6b835'
+                OAuthToken: '2ec39d8b37795c0b218b0514e1b87110cd7daedf'
               OutputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
