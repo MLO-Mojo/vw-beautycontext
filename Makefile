@@ -1,5 +1,5 @@
 ## AWS-Credentials ##############
-PROFILE=default
+PROFILE=vw.beautycontext
 REGION=eu-central-1
 ################################
 
@@ -10,17 +10,16 @@ PROJECT_NAME=vw-beatycontext
 ## Git-Repository-Credentials###
 GITHUB_REPO_NAME='vw-beautycontext'
 GITHUB_USER_NAME='MLO-Mojo'
-GITHUB_OAUTH_TOKEN= $OAUTH_TOKEN
+GITHUB_OAUTH_TOKEN= ...
 ################################
 
 deploy-pipeline-infrastructure:
 	@echo "deploy pipeline-infrastructure-stack"
-	@aws cloudformation update-stack \
+	@aws cloudformation create-stack \
 		--stack-name ${PROJECT_NAME}-pipeline-infrastructure \
-		--template-body file://cicd/pipeline-infrastructure.yaml \
+		--template-body file://build/pipeline-infrastructure.yaml \
 		--parameters \
 				ParameterKey=Project,ParameterValue=${PROJECT_NAME} \
-				ParameterKey=OAuthTokenGithub,ParameterValue=${GITHUB_OAUTH_TOKEN} \
 		--capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
 		--profile ${PROFILE} \
 		--region ${REGION}
@@ -34,14 +33,15 @@ deploy-pipeline-infrastructure:
 
 deploy-pipeline:
 	@echo "deploy pipeline-stack"
-	@aws cloudformation update-stack \
+	@aws cloudformation create-stack \
 		--stack-name ${PROJECT_NAME}-pipeline \
-		--template-body file://cicd/pipeline.yaml \
+		--template-body file://build/pipeline.yaml \
 		--parameters \
 				ParameterKey=Project,ParameterValue=${PROJECT_NAME} \
 				ParameterKey=PipelineInfrastructureStack,ParameterValue=${PROJECT_NAME}-pipeline-infrastructure \
-				ParameterKey=GitHubRepoName,ParameterValue=${GITHUB_REPO_NAME} \
+				ParameterKey=GitHubRepoName,ParameterValue=${GITHUB_REPO_NAME} \  GitHubOAuthToken
 				ParameterKey=GitHubOwner,ParameterValue=${GITHUB_USER_NAME} \
+				ParameterKey=GitHubOAuthToken,ParameterValue=${GITHUB_OAUTH_TOKEN} \
 		--capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
 		--profile ${PROFILE} \
 		--region ${REGION}

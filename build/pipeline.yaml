@@ -14,6 +14,9 @@ Parameters:
   GitHubOwner:
     Description: "github username"
     Type: String
+  GitHubOAuthToken:
+    Description: "github OAuth Token"
+    Type: String
 
 Resources:
   ECRRepository:
@@ -142,7 +145,7 @@ Resources:
                 Owner: "MLO-Mojo"
                 Repo: "vw-beautycontext"
                 Branch: "master"
-                OAuthToken: '{{resolve:ssm:GITHUB_OAUTH_TOKEN:1}}'
+                OAuthToken: !Ref GitHubOAuthToken
               OutputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -272,6 +275,17 @@ Resources:
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 5
+        - Name: ApproveBeforeDeploy
+          Actions:
+            - Name: Approve
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: 'Approve or Reject with comments here.'
+              RunOrder: 1
         - Name: DeployWordpress
           Actions:
             - Name: DeployECS

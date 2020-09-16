@@ -57,7 +57,7 @@ Resources:
                   - ':'
                   - '{{resolve:ssm:DATABASE_PORT:1}}'
             - Name: WORDPRESS_DB_USER
-              Value: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}' #root
+              Value: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}' #root
             - Name: WORDPRESS_DB_NAME
               Value: '{{resolve:ssm:DATABASE_NAME:1}}' #wordpressdb
             - Name: WORDPRESS_DB_PASSWORD
