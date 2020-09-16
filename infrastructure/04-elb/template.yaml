@@ -50,7 +50,7 @@ Resources:
       HealthCheckPath: "/"
       HealthCheckPort: "80"
       HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 50
+      HealthCheckTimeoutSeconds: 25
       HealthyThresholdCount: 5
       UnhealthyThresholdCount: 2
       Protocol: HTTP
