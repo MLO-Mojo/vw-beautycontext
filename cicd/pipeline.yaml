@@ -271,17 +271,17 @@ Resources:
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 5
-        - Name: DeployWordpress
-          Actions:
-            - Name: DeployECS
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Version: 1
-                Provider: ECS
-              Configuration:
-                ClusterName: !Sub "${Project}-ecs-cluster"
-                ServiceName: "wordpress-service"
-              InputArtifacts:
-                - Name: BuildOutput
-              RunOrder: 3
+#        - Name: DeployWordpress
+#          Actions:
+#            - Name: DeployECS
+#              ActionTypeId:
+#                Category: Deploy
+#                Owner: AWS
+#                Version: 1
+#                Provider: ECS
+#              Configuration:
+#                ClusterName: !Sub "${Project}-ecs-cluster"
+#                ServiceName: "wordpress-service"
+#              InputArtifacts:
+#                - Name: BuildOutput
+#              RunOrder: 3
