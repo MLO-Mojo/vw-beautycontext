@@ -48,18 +48,16 @@ Resources:
       Cpu: 256
       ContainerDefinitions:
         - Name: !Sub ${ContainerName}
-          Image: !Sub "${AWS::AccoundId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrName}:latest"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrName}:latest"
           Environment:
-            - Name: DATABASE_USER
-              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_USER}}'
-            - Name: DATABASE_PASSWORD
-              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_PASSWORD}}'
-            - Name: DATABASE_HOST
+            - Name: WORDPRESS_DB_HOST
               Value: '{{resolve:ssm:DATABASE_HOST:1}}'
-            - Name: DATABASE_PORT
-              Value: '{{resolve:ssm:DATABASE_PORT:1}}'
-            - Name: DATABASE_NAME
-              Value: '{{resolve:ssm:DATABASE_NAME:1}}'
+            - Name: WORDPRESS_DB_USER
+              Value: root #'{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_PASSWORD}}'
+            - Name: WORDPRESS_DB_NAME
+              Value: wordpressdb #'{{resolve:ssm:DATABASE_HOST:1}}'
+            - Name: WORDPRESS_DB_PASSWORD
+              Value: geheim41 #'{{resolve:ssm:DATABASE_PORT:1}}'
           Memory: 512
           Cpu: 256
           PortMappings:
