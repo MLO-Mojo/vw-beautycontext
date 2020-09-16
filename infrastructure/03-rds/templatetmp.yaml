@@ -35,70 +35,71 @@ Resources:
       VpcId:
         Fn::ImportValue: !Sub ${VpcStackName}:VpcId
 
-  AuroraDb:
-    Type: AWS::RDS::DBCluster
+  WordpressDbInstance:
+    Type: AWS::RDS::DBInstance
+    DependsOn:
+      - DbSubnetGroup
+      - WordpressDbSecurityGroup
     Properties:
-      AvailabilityZones:
-        - Fn::Select:
-            - 1
-            - Fn::GetAZs: ""
-        - Fn::Select:
-            - 2
-            - Fn::GetAZs: ""
-        - Fn::Select:
-            - 3
-            - Fn::GetAZs: ""
-      DatabaseName: '{{resolve:ssm:DATABASE_NAME:1}}'
-      DBClusterIdentifier: wordpressDbInstance
+      DBInstanceIdentifier: wordpressDbInstance
+      DBName: '{{resolve:ssm:DATABASE_NAME:1}}' #wordpressdb
+      Engine: mysql
+      Port: 3306
+      DBInstanceClass: db.t2.micro
+      AllocatedStorage: 20
+      StorageType: gp2
+      AllowMajorVersionUpgrade: False
+      AutoMinorVersionUpgrade: False
       DBSubnetGroupName: !Ref DbSubnetGroup
+      DeleteAutomatedBackups: True
       DeletionProtection: False
-      Engine: aurora
-      EngineMode: provisioned
       MasterUsername: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}' #root
       MasterUserPassword: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}' #geheim41
-      Port: 3306
+      MultiAZ: False
+      PubliclyAccessible: False
+      StorageEncrypted: False
       Tags:
         - Key: Name
-          Value: wordpressDbInstance
-      VpcSecurityGroupIds:
+          Value: WordprssDbInstance
+      VPCSecurityGroups:
         - !Ref WordpressDbSecurityGroup
 
   DbHostNameParameter:
     Type: AWS::SSM::Parameter
     DependsOn:
-      - AuroraDb
+      - WordpressDbInstance
     Properties:
       Name: DATABASE_HOST
       Description: The Database Hostname
       Tier: Standard
       Type: String
-      Value: !GetAtt AuroraDb.Endpoint.Address
+      Value: !GetAtt WordpressDbInstance.Endpoint.Address
 
   DbPortParameter:
     Type: AWS::SSM::Parameter
     DependsOn:
-      - AuroraDb
+      - WordpressDbInstance
     Properties:
       Name: DATABASE_PORT
       Description: The Database Hostname
       Tier: Standard
       Type: String
-      Value: !GetAtt AuroraDb.Endpoint.Port
+      Value: !GetAtt WordpressDbInstance.Endpoint.Port
 
 Outputs:
   InstanceName:
     Description: The Instance Name of the wordpressDb
-    Value: !Ref AuroraDb
+    Value: !Ref WordpressDbInstance
     Export:
       Name: !Sub "${AWS::StackName}:InstanceName"
   DbEndpointAddress:
     Description: The Endpoint Address of the wordpressDb
-    Value: !GetAtt AuroraDb.Endpoint.Address
+    Value: !GetAtt WordpressDbInstance.Endpoint.Address
     Export:
       Name: !Sub "${AWS::StackName}:EndpointAddress"
   DbPort:
     Description: The Port of the wordpressDb
-    Value: !GetAtt AuroraDb.Endpoint.Port
+    Value: !GetAtt WordpressDbInstance.Endpoint.Port
     Export:
       Name: !Sub "${AWS::StackName}:Port"
   DbSecurityGroupId:

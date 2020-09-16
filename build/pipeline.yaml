@@ -176,7 +176,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-vpc"
-                TemplatePath: "SourceArtifact::infrastructure/01-vpc/template.yaml"
+                TemplatePath: "SourceArtifact::infrastructure/01-vpc/templatetmp.yaml"
                 RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
               InputArtifacts:
                 - Name: SourceArtifact
@@ -191,7 +191,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-ecs-cluster"
-                TemplatePath: "SourceArtifact::infrastructure/02-ecs-cluster/template.yaml"
+                TemplatePath: "SourceArtifact::infrastructure/02-ecs-cluster/templatetmp.yaml"
                 RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
               InputArtifacts:
                 - Name: SourceArtifact
@@ -221,7 +221,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-rds-db"
-                TemplatePath: "SourceArtifact::infrastructure/03-rds/template.yaml"
+                TemplatePath: "SourceArtifact::infrastructure/03-rds/templatetmp.yaml"
                 RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
                 ParameterOverrides:
                   Fn::Sub: |
@@ -241,7 +241,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-elb"
-                TemplatePath: "SourceArtifact::infrastructure/04-elb/template.yaml"
+                TemplatePath: "SourceArtifact::infrastructure/04-elb/templatetmp.yaml"
                 RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
                 ParameterOverrides:
                   Fn::Sub: |
@@ -262,7 +262,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-task-and-service"
-                TemplatePath: "SourceArtifact::infrastructure/05-ecs-task-service/template.yaml"
+                TemplatePath: "SourceArtifact::infrastructure/05-ecs-task-service/templatetmp.yaml"
                 RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
                 ParameterOverrides:
                   Fn::Sub: |
