@@ -99,6 +99,20 @@ Resources:
       ServiceRole:
         Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleName
 
+  CodepipelineDeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -132,21 +146,21 @@ Resources:
               OutputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
-        - Name: BuildAndPush
-          Actions:
-            - Name: BuildAndPush
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Version: 1
-                Provider: CodeBuild
-              Configuration:
-                ProjectName: !Ref CodeBuildProject
-              InputArtifacts:
-                - Name: SourceArtifact
-              OutputArtifacts:
-                - Name: BuildOutput
-              RunOrder: 2
+#        - Name: BuildAndPush
+#          Actions:
+#            - Name: BuildAndPush
+#              ActionTypeId:
+#                Category: Build
+#                Owner: AWS
+#                Version: 1
+#                Provider: CodeBuild
+#              Configuration:
+#                ProjectName: !Ref CodeBuildProject
+#              InputArtifacts:
+#                - Name: SourceArtifact
+#              OutputArtifacts:
+#                - Name: BuildOutput
+#              RunOrder: 2
         - Name: DeployInfrastructure
           Actions:
             - Name: DeployVpc
@@ -160,8 +174,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-vpc"
                 TemplatePath: "SourceArtifact::infrastructure/01-vpc/template.yaml"
-                RoleArn:
-                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
+                RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -176,8 +189,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-ecs-cluster"
                 TemplatePath: "SourceArtifact::infrastructure/02-ecs-cluster/template.yaml"
-                RoleArn:
-                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
+                RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -192,8 +204,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-rds-credentials"
                 TemplatePath: "SourceArtifact::infrastructure/03-rds/template.credentials.yaml"
-                RoleArn:
-                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
+                RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 2
@@ -208,8 +219,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-rds-db"
                 TemplatePath: "SourceArtifact::infrastructure/03-rds/template.yaml"
-                RoleArn:
-                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
+                RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
                 ParameterOverrides:
                   Fn::Sub: |
                     {
@@ -229,8 +239,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-elb"
                 TemplatePath: "SourceArtifact::infrastructure/04-elb/template.yaml"
-                RoleArn:
-                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
+                RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
                 ParameterOverrides:
                   Fn::Sub: |
                     {
@@ -251,8 +260,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 StackName: !Sub "${Project}-task-and-service"
                 TemplatePath: "SourceArtifact::infrastructure/05-ecs-task-service/template.yaml"
-                RoleArn:
-                  Fn::ImportValue: !Sub ${PipelineInfrastructureStack}:pipelineServiceRoleArn
+                RoleArn: !GetAtt CodepipelineDeploymentRole.Arn
                 ParameterOverrides:
                   Fn::Sub: |
                     {
