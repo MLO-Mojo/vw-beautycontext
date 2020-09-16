@@ -53,8 +53,8 @@ Resources:
       DBSubnetGroupName: !Ref DbSubnetGroup
       DeleteAutomatedBackups: True
       DeletionProtection: False
-      MasterUsername: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER:AWSCURRENT:AWSCURRENT}}'
-      MasterUserPassword: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD:AWSCURRENT:AWSCURRENT}}'
+      MasterUsername: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}'
+      MasterUserPassword: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}'
       MultiAZ: False
       PubliclyAccessible: False
       StorageEncrypted: False
