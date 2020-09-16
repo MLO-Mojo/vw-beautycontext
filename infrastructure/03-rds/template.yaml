@@ -39,6 +39,7 @@ Resources:
     Type: AWS::RDS::DBCluster
     DependsOn:
       - DbSubnetGroup
+      - WordpressDbSecurityGroup
     Properties:
       AvailabilityZones:
         - Fn::Select:
