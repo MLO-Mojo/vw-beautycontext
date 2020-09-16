@@ -142,7 +142,7 @@ Resources:
                 Owner: "MLO-Mojo"
                 Repo: "vw-beautycontext"
                 Branch: "master"
-                OAuthToken: '5b6213ea0be53e9491c8f7602a9912dec76a90e0'
+                OAuthToken: 'fc39ca8860cc002055f5c628356d4748bde6b835'
               OutputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -266,7 +266,8 @@ Resources:
                     {
                       "VpcStackName": "${Project}-vpc",
                       "ElbStackName": "${Project}-elb",
-                      "EcsClusterStackName": "${Project}-ecs-cluster"
+                      "EcsClusterStackName": "${Project}-ecs-cluster",
+                      "EcrName": "${ECRRepository}"
                     }
               InputArtifacts:
                 - Name: SourceArtifact

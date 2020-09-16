@@ -15,6 +15,8 @@ Parameters:
     Type: String
   EcsClusterStackName:
     Type: String
+  EcrName:
+    Type: String
 
 Resources:
   EcsTaskExecutionRole:
@@ -46,7 +48,7 @@ Resources:
       Cpu: 256
       ContainerDefinitions:
         - Name: !Sub ${ContainerName}
-          Image: 'wordpress'
+          Image: !Sub "${AWS::AccoundId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrName}:latest"
           Environment:
             - Name: DATABASE_USER
               Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_USER}}'
