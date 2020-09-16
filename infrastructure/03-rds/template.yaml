@@ -54,7 +54,7 @@ Resources:
       DeleteAutomatedBackups: True
       DeletionProtection: False
       MasterUsername: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_USER}}' #root
-      MasterUserPassword:  '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}' #geheim41
+      MasterUserPassword: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}' #geheim41
       MultiAZ: False
       PubliclyAccessible: False
       StorageEncrypted: False

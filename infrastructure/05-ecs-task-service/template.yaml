@@ -57,11 +57,11 @@ Resources:
                   - ':'
                   - '{{resolve:ssm:DATABASE_PORT:1}}'
             - Name: WORDPRESS_DB_USER
-              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_USER}}' #root
+              Value: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}' #root
             - Name: WORDPRESS_DB_NAME
               Value: '{{resolve:ssm:DATABASE_NAME:1}}' #wordpressdb
             - Name: WORDPRESS_DB_PASSWORD
-              Value: '{{resolve:secretsmanager:wordpressDBCredentials:SecretString:DATABASE_PASSWORD}}' #geheim41
+              Value: '{{resolve:secretsmanager:wordpressDbCredentials:SecretString:DATABASE_PASSWORD}}' #geheim41
           Memory: 512
           Cpu: 256
           PortMappings:
